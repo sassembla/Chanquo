@@ -1,0 +1,10 @@
+
+Library/*
+Temp/*
+Assembly-CSharp.csproj
+Chanquo.csproj
+Chanquo.sln
+Logs/*
+obj/*
+Tests.csproj
+Packages/manifest.json
