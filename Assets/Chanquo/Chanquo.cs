@@ -38,7 +38,11 @@ namespace ChanquoCore
                     runner.Dispose(actIds);
                 }
             );
-            channelTable[typeof(T)] = chan;
+
+            lock (channelWriteLock)
+            {
+                channelTable[typeof(T)] = chan;
+            }
             return chan;
         }
 
