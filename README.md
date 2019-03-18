@@ -54,4 +54,35 @@ var s = Chanquo.Select<T>(
 );// 受信 sはレシーバ。あるだけ読み出されるwhile文みたいなもの。OnUpdateで着火されるハンドラとして動く。
 ```
 
+## future implementation
+
+### select more types.
+```csharp
+var s = Chanquo.Select<T,U>(
+    t =>
+    {
+        Assert.True(t.message == "selected!");
+    },
+    u => {
+		// receive u.
+    },
+    ThreadMode.OnUpdate
+);
+```
+
+### react with channel-death
+```csharp
+s = Chanquo.Select<T,U>(
+    t =>
+    {
+    	if (!t.ok) {
+    		s.Dispose();
+	        return;
+	    }
+
+	    Assert.True(t.message == "selected!");
+    },
+    ThreadMode.OnUpdate
+);
+```
 
