@@ -92,6 +92,48 @@ namespace Tests
         }
 
         [UnityTest]
+        public IEnumerator ReceiveMultiDataInOtherThread()
+        {
+            var c = Chanquo.New<T>();
+            var dataCount = 10;
+            for (var i = 0; i < dataCount; i++)
+            {
+                c.Send(
+                    new T()
+                    {
+                        message = "selected!"
+                    }
+                );
+            }
+
+            var done = false;
+            var receiveCount = 0;
+            var thread = new Thread(new ThreadStart(
+                () =>
+                {
+                    var s = Chanquo.Select<T>(
+                        t =>
+                        {
+                            Assert.True(t.message == "selected!");
+                            receiveCount++;
+                            if (receiveCount == dataCount)
+                            {
+                                done = true;
+                            }
+                        },
+                        ThreadMode.OnUpdate
+                    );// 受信 sはレシーバ。あるだけ読み出
+                }
+            ));
+
+            thread.Start();
+            while (!done)
+            {
+                yield return null;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator SendFromOtherThread()
         {
             var done = false;

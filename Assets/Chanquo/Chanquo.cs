@@ -51,23 +51,29 @@ namespace ChanquoCore
 
             // chan自体が死んだら死ぬために、Actを渡したい。
             var pullAct = chan.AddSelectAction<T>(chanquoAct);
-            switch (mode)
+            if (Thread.CurrentThread == unityThread)
             {
-                case ThreadMode.Default:
-                    // 呼び出し元のthreadに応じて動作を変える。
-                    if (Thread.CurrentThread == unityThread)
-                    {
+                switch (mode)
+                {
+                    case ThreadMode.Default:
                         runner.Add(pullAct, ThreadMode.OnUpdate);
-                    }
-                    else
-                    {
-                        // 呼び出し元のthreadがUnity threadではないため、chan内でデータ移動が完結するようにする。
-                        chan.AddNonUnityThreadSelectAct(chanquoAct);
-                    }
-                    break;
-                default:
-                    runner.Add(pullAct, mode);
-                    break;
+                        break;
+                    default:
+                        runner.Add(pullAct, mode);
+                        break;
+                }
+            }
+            else
+            {
+                // recever is not waiting on UnityThread.
+                chan.AddNonUnityThreadSelectAct(chanquoAct);
+            }
+
+            // if current chan has some data, fire receiver action.
+            T s;
+            while ((s = chan.Dequeue<T>()) != null)
+            {
+                chanquoAct.act?.Invoke(s);
             }
 
             return chanquoAct;

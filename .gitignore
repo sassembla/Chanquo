@@ -8,3 +8,4 @@ Logs/*
 obj/*
 Tests.csproj
 Packages/manifest.json
+.vscode/launch.json
