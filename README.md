@@ -18,9 +18,9 @@ public class T : ChanquoBase
 }
 ```
 
-create channel via New<T>(), then send new T instance to the channel.
+create channel via MakeChannel<T>(), then send new T instance to the channel.
 ```csharp
-var c = Chanquo.New<T>();
+var c = Chanquo.MakeChannel<T>();
 c.Send(
     new T()
     {
