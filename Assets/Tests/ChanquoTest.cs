@@ -11,7 +11,20 @@ namespace Tests
 {
     public class ChanquoTest
     {
-        public class T : IChanquoBase
+        private ChanquoChannel c;
+        private ChanquoAction<T> s;
+
+
+        [TearDown]
+        public void Teardonw()
+        {
+            c?.Dispose();
+            s?.Dispose();
+            var s2 = GameObject.FindObjectOfType<ChanquoThreadRunner>();
+            Assert.True(s2.update.Count == 0);
+        }
+
+        public class T : ChanquoBase
         {
             public string message;
             public void Something()
@@ -23,49 +36,58 @@ namespace Tests
         [UnityTest]
         public IEnumerator SendAndReceive()
         {
-            var c = Chanquo.New<T>();
+            var message = "SendAndReceive" + Guid.NewGuid().ToString();
+            c = Chanquo.MakeChannel<T>();
             c.Send(
                 new T()
                 {
-                    message = "message!"
+                    message = message
                 }
             );//c <- data;// 送信
 
             var r = Chanquo.Receive<T>();// 受信 r <- c(呼んだタイミングで溜まっているものを先頭だけpull)
-            Assert.True(r.message == "message!");
+            Assert.True(r.message == message);
             yield return null;
         }
 
         [UnityTest]
         public IEnumerator SendAndSelect()
         {
-            var c = Chanquo.New<T>();
+            var message = "SendAndSelect" + Guid.NewGuid().ToString();
+            c = Chanquo.MakeChannel<T>();
             c.Send(
                 new T()
                 {
-                    message = "selected!"
+                    message = message
                 }
             );//c <- data;// 送信
 
-            var s = Chanquo.Select<T>(
+            s = Chanquo.Select<T>(
                 t =>
                 {
-                    Assert.True(t.message == "selected!");
+                    if (!t.Ok)
+                    {
+                        return;
+                    }
+
+                    Assert.True(t.message == message);
                 },
                 ThreadMode.OnUpdate
             );// 受信 sはレシーバ。あるだけ読み出されるwhile文みたいなもの。
 
+            s.Dispose();
             yield return null;
         }
 
         [UnityTest]
         public IEnumerator ReceiveInOtherThread()
         {
-            var c = Chanquo.New<T>();
+            var message = "ReceiveInOtherThread" + Guid.NewGuid().ToString();
+            c = Chanquo.MakeChannel<T>();
             c.Send(
                 new T()
                 {
-                    message = "selected!"
+                    message = message
                 }
             );//c <- data;// 送信
 
@@ -73,10 +95,16 @@ namespace Tests
             var thread = new Thread(new ThreadStart(
                 () =>
                 {
-                    var s = Chanquo.Select<T>(
+                    s = Chanquo.Select<T>(
                         t =>
                         {
-                            Assert.True(t.message == "selected!");
+                            if (!t.Ok)
+                            {
+                                return;
+                            }
+
+                            Assert.True(t.message == message, "actual:" + t.message);
+                            s.Dispose();
                             done = true;
                         },
                         ThreadMode.OnUpdate
@@ -85,8 +113,14 @@ namespace Tests
             ));
 
             thread.Start();
+            var waitTime = DateTime.Now + TimeSpan.FromSeconds(1);
             while (!done)
             {
+                if (waitTime < DateTime.Now)
+                {
+                    Debug.LogError("timeout");
+                    break;
+                }
                 yield return null;
             }
         }
@@ -94,14 +128,15 @@ namespace Tests
         [UnityTest]
         public IEnumerator ReceiveMultiDataInOtherThread()
         {
-            var c = Chanquo.New<T>();
+            var message = "ReceiveMultiDataInOtherThread" + Guid.NewGuid().ToString();
+            c = Chanquo.MakeChannel<T>();
             var dataCount = 10;
             for (var i = 0; i < dataCount; i++)
             {
                 c.Send(
                     new T()
                     {
-                        message = "selected!"
+                        message = message
                     }
                 );
             }
@@ -111,14 +146,20 @@ namespace Tests
             var thread = new Thread(new ThreadStart(
                 () =>
                 {
-                    var s = Chanquo.Select<T>(
+                    s = Chanquo.Select<T>(
                         t =>
                         {
-                            Assert.True(t.message == "selected!");
+                            if (!t.Ok)
+                            {
+                                return;
+                            }
+
+                            Assert.True(t.message == message);
                             receiveCount++;
                             if (receiveCount == dataCount)
                             {
                                 done = true;
+                                s.Dispose();
                             }
                         },
                         ThreadMode.OnUpdate
@@ -127,8 +168,14 @@ namespace Tests
             ));
 
             thread.Start();
+            var waitTime = DateTime.Now + TimeSpan.FromSeconds(1);
             while (!done)
             {
+                if (waitTime < DateTime.Now)
+                {
+                    Debug.LogError("timeout");
+                    break;
+                }
                 yield return null;
             }
         }
@@ -136,34 +183,47 @@ namespace Tests
         [UnityTest]
         public IEnumerator SendFromOtherThread()
         {
+            var message = "SendFromOtherThread" + Guid.NewGuid().ToString();
             var done = false;
             var thread = new Thread(new ThreadStart(
                 () =>
                 {
-                    var c = Chanquo.New<T>();
+                    c = Chanquo.MakeChannel<T>();
                     c.Send(
                         new T()
                         {
-                            message = "selected!"
+                            message = message
                         }
                     );//c <- data;// 送信
                 }
                 )
             );
 
-            var s = Chanquo.Select<T>(
+            s = Chanquo.Select<T>(
                 t =>
                 {
-                    Assert.True(t.message == "selected!");
+                    if (!t.Ok)
+                    {
+                        return;
+                    }
+
+                    Assert.True(t.message == message);
+                    s.Dispose();
                     done = true;
                 },
                 ThreadMode.OnUpdate
             );
 
-
             thread.Start();
+
+            var waitTime = DateTime.Now + TimeSpan.FromSeconds(1);
             while (!done)
             {
+                if (waitTime < DateTime.Now)
+                {
+                    Debug.LogError("timeou." + DateTime.Now.Millisecond);
+                    break;
+                }
                 yield return null;
             }
         }
@@ -171,40 +231,81 @@ namespace Tests
         [UnityTest]
         public IEnumerator SendDisposeThenReceive()
         {
-            var c = Chanquo.New<T>();
+            var message = "SendDisposeThenReceive" + Guid.NewGuid().ToString();
+            c = Chanquo.MakeChannel<T>();
             c.Send(
                 new T()
                 {
-                    message = "message!"
+                    message = message
                 }
             );//c <- data;// 送信
             c.Dispose();
 
             var r = Chanquo.Receive<T>();// 受信 r <- c(呼んだタイミングで溜まっているものを先頭だけpull)
-            Assert.False(r?.message == "message!");
-            r?.Something();
-            Debug.Log("actual message:" + r?.message);
+            Assert.True(r == null);
             yield return null;
         }
 
         [UnityTest]
         public IEnumerator SendDisposeThenSelect()
         {
-            var c = Chanquo.New<T>();
+            var message = "SendDisposeThenSelect" + Guid.NewGuid().ToString();
+            c = Chanquo.MakeChannel<T>();
             c.Send(
                 new T()
                 {
-                    message = "selected!"
+                    message = message
                 }
             );//c <- data;// 送信
             c.Dispose();
 
             var done = false;
 
-            var s = Chanquo.Select<T>(
+            s = Chanquo.Select<T>(
                 t =>
                 {
                     Assert.True(true, "should never come here.");
+                },
+                ThreadMode.OnUpdate
+            );
+
+            var waitTime = DateTime.Now + TimeSpan.FromSeconds(1);
+            while (!done)
+            {
+                if (waitTime < DateTime.Now)
+                {
+                    // done.
+                    break;
+                }
+                yield return null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator DisposeSelect()
+        {
+            var message = "DisposeSelect" + Guid.NewGuid().ToString();
+            c = Chanquo.MakeChannel<T>();
+            c.Send(
+                new T()
+                {
+                    message = message
+                }
+            );//c <- data;// 送信
+
+            var done = false;
+
+
+            s = Chanquo.Select<T>(
+                t =>
+                {
+                    if (!t.Ok)
+                    {
+                        return;
+                    }
+
+                    Assert.True(t.message == message, "actual:" + t.message);
+                    s.Dispose();// Selectの実行後
                     done = true;
                 },
                 ThreadMode.OnUpdate
@@ -213,8 +314,45 @@ namespace Tests
             var waitTime = DateTime.Now + TimeSpan.FromSeconds(1);
             while (!done)
             {
-                if (DateTime.Now < waitTime)
+                if (waitTime < DateTime.Now)
                 {
+                    break;
+                }
+                yield return null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator DisposeSelectWhenChannelIsDisposed()
+        {
+            c = Chanquo.MakeChannel<T>();
+
+            var done = false;
+
+
+            s = Chanquo.Select<T>(
+                t =>
+                {
+                    if (!t.Ok)
+                    {
+                        done = true;
+                        s.Dispose();
+                        return;
+                    }
+                    Debug.Log("t:" + t.message);
+                },
+                ThreadMode.OnUpdate
+            );
+
+            c.Dispose();
+
+
+            var waitTime = DateTime.Now + TimeSpan.FromSeconds(1);
+            while (!done)
+            {
+                if (waitTime < DateTime.Now)
+                {
+                    Debug.LogError("timeout");
                     break;
                 }
                 yield return null;
@@ -224,6 +362,5 @@ namespace Tests
         // sは独自のタイミングで呼び出される。が、on threadな仕掛けが欲しい。thread Aで呼ばれたい、みたいな。
         // とかやっておくと、データが流れる仕掛けが欲しい。インターバル指定、Last指定ができれば嬉しい        
         // selectをswitch式みたいに描きたい
-        // s.Dispose();// selectの破棄
     }
 }

@@ -1,44 +1,88 @@
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
 namespace ChanquoCore
 {
+    public struct PullActAndId
+    {
+        public readonly Action pullAct;
+        public readonly string id;
+        public PullActAndId(Action pullAct, string id)
+        {
+            this.pullAct = pullAct;
+            this.id = id;
+        }
+    }
+
     public class ChanquoChannel : IDisposable
     {
-        private ConcurrentQueue<IChanquoBase> queue = new ConcurrentQueue<IChanquoBase>();
+        private ConcurrentQueue<ChanquoBase> queue = new ConcurrentQueue<ChanquoBase>();
         private Hashtable selectActTable = new Hashtable();
         private Hashtable nonUnityThreadSelectActTable = new Hashtable();
+        private Hashtable lastActTable = new Hashtable();
         private object actTableLock = new object();
+        private readonly Action<List<string>> leftFromChanquo;
 
-        public void Send<T>(T data) where T : class, IChanquoBase, new()
+        public ChanquoChannel(Action<List<string>> leftFromChanquo)
         {
-            queue?.Enqueue(data);
+            this.leftFromChanquo = leftFromChanquo;
+        }
+        public void Send<T>(T data) where T : ChanquoBase, new()
+        {
+            queue.Enqueue(data);
             foreach (var id in nonUnityThreadSelectActTable)
             {
                 ((Action)nonUnityThreadSelectActTable[id])?.Invoke();
             }
         }
 
-        internal T Dequeue<T>() where T : class, IChanquoBase, new()
+        public T Dequeue<T>() where T : ChanquoBase, new()
         {
-            if (disposedValue || queue.Count == 0)
+            if (queue.Count == 0)
             {
                 return null;
             }
 
-            IChanquoBase result;
+            if (disposedValue)
+            {
+                return new T() { Ok = false };
+            }
+
+            ChanquoBase result;
             queue.TryDequeue(out result);
             return (T)result;
         }
 
-        public Action AddSelectAction<T>(ChanquoAction<T> selectAct) where T : class, IChanquoBase, new()
+        public void Remove(string id)
+        {
+            lock (actTableLock)
+            {
+                if (selectActTable.ContainsKey(id))
+                {
+                    selectActTable.Remove(id);
+                }
+
+                if (nonUnityThreadSelectActTable.ContainsKey(id))
+                {
+                    nonUnityThreadSelectActTable.Remove(id);
+                }
+
+                if (lastActTable.ContainsKey(id))
+                {
+                    lastActTable.Remove(id);
+                }
+            }
+        }
+
+        public PullActAndId AddSelectAction<T>(ChanquoAction<T> selectAct) where T : ChanquoBase, new()
         {
             if (disposedValue)
             {
-                return () => { };
+                return new PullActAndId();
             }
 
             var id = Guid.NewGuid().ToString();
@@ -49,17 +93,23 @@ namespace ChanquoCore
                 {
                     selectAct.act(Dequeue<T>());
                 }
+            };
+
+            Action lastAct = () =>
+            {
+                selectAct.act(new T() { Ok = false });
             };
 
             lock (actTableLock)
             {
                 selectActTable[id] = pullAct;
+                lastActTable[id] = lastAct;
             }
 
-            return pullAct;
+            return new PullActAndId(pullAct, id);
         }
 
-        public void AddNonUnityThreadSelectAct<T>(ChanquoAction<T> selectAct) where T : class, IChanquoBase, new()
+        public void AddNonUnityThreadSelectAct<T>(ChanquoAction<T> selectAct) where T : ChanquoBase, new()
         {
             var id = Guid.NewGuid().ToString();
             Action pullAct = () =>
@@ -71,9 +121,15 @@ namespace ChanquoCore
                 }
             };
 
+            Action lastAct = () =>
+            {
+                selectAct.act(new T() { Ok = false });
+            };
+
             lock (actTableLock)
             {
                 nonUnityThreadSelectActTable[id] = pullAct;
+                lastActTable[id] = lastAct;
             }
         }
 
@@ -87,16 +143,36 @@ namespace ChanquoCore
             {
                 if (disposing)
                 {
+                    var pullActIds = new List<string>();
+                    foreach (var key in lastActTable.Keys)
+                    {
+                        pullActIds.Add((string)key);
+                    }
+
                     // これが実行されたら、もうこのchannelは停止する。登録されている全てのreceiverを消す。
-                    var pullActIds = selectActTable.Values;
                     lock (actTableLock)
                     {
+
+                        // すべてのレシーバーに対してok = falseを送り出さないといけない。
                         foreach (var id in pullActIds)
                         {
-                            selectActTable[id] = null;
-                            nonUnityThreadSelectActTable[id] = null;
+                            if (selectActTable.ContainsKey(id))
+                            {
+                                selectActTable.Remove(id);
+                            }
+
+                            if (nonUnityThreadSelectActTable.ContainsKey(id))
+                            {
+                                nonUnityThreadSelectActTable.Remove(id);
+                            }
+
+                            ((Action)lastActTable[id])?.Invoke();
+                            lastActTable.Remove(id);
                         }
                     }
+
+                    // chanque自体の管理から抜ける
+                    leftFromChanquo(pullActIds);
 
                     queue = null;
                 }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace ChanquoCore
@@ -11,55 +12,83 @@ namespace ChanquoCore
     {
         private static Chanquo _chanq;
 
-        private ConcurrentDictionary<Type, ChanquoChannel> channelDict = new ConcurrentDictionary<Type, ChanquoChannel>();
+        private Hashtable channelTable = new Hashtable();
         private GameObject go = new GameObject("ChanquoThreadRunner");
         private ChanquoThreadRunner runner = null;
         private Thread unityThread;
+        private object channelWriteLock = new object();
 
-        private ChanquoChannel AddChannel<T>() where T : IChanquoBase, new()
+        private ChanquoChannel AddChannel<T>() where T : ChanquoBase, new()
         {
             var key = typeof(T);
-            if (channelDict.ContainsKey(key))
+            if (channelTable.ContainsKey(key))
             {
-                ChanquoChannel q;
-                channelDict.TryGetValue(key, out q);
-                return q;
+                return (ChanquoChannel)channelTable[key];
             }
 
             // generate new channel.
-            var chan = new ChanquoChannel();
-            channelDict[typeof(T)] = chan;
+            var chan = new ChanquoChannel(
+                actIds =>
+                {
+                    lock (channelWriteLock)
+                    {
+                        channelTable.Remove(typeof(T));
+                    }
+
+                    runner.Dispose(actIds);
+                }
+            );
+            channelTable[typeof(T)] = chan;
             return chan;
         }
 
-        private ChanquoAction<T> AddReceiver<T>(Action<T> act, ThreadMode mode = ThreadMode.Default) where T : class, IChanquoBase, new()
+        private ChanquoAction<T> AddReceiver<T>(Action<T> act, ThreadMode mode = ThreadMode.Default) where T : ChanquoBase, new()
         {
-            var chanquoAct = new ChanquoAction<T>(act);
-
             // ここで関連付けを行う。
             ChanquoChannel chan;
+
             var key = typeof(T);
-            if (channelDict.ContainsKey(key))
+            if (channelTable.ContainsKey(key))
             {
-                channelDict.TryGetValue(key, out chan);
+                chan = (ChanquoChannel)channelTable[key];
             }
             else
             {
-                chan = new ChanquoChannel();
-                channelDict[typeof(T)] = chan;
+                chan = new ChanquoChannel(
+                    actIds =>
+                    {
+                        lock (channelWriteLock)
+                        {
+                            channelTable.Remove(typeof(T));
+                        }
+
+                        runner.Dispose(actIds);
+                    }
+                );
+
+                lock (channelWriteLock)
+                {
+                    channelTable[typeof(T)] = chan;
+                }
             }
 
-            // chan自体が死んだら死ぬために、Actを渡したい。
-            var pullAct = chan.AddSelectAction<T>(chanquoAct);
+            var chanquoAct = new ChanquoAction<T>(act);
+            var pullActAndId = chan.AddSelectAction<T>(chanquoAct);
+            chanquoAct.SetOnDispose(() =>
+            {
+                chan.Remove(pullActAndId.id);
+                runner.Dispose(new List<string> { pullActAndId.id });
+            });
+
             if (Thread.CurrentThread == unityThread)
             {
                 switch (mode)
                 {
                     case ThreadMode.Default:
-                        runner.Add(pullAct, ThreadMode.OnUpdate);
+                        runner.Add(pullActAndId.id, pullActAndId.pullAct, ThreadMode.OnUpdate);
                         break;
                     default:
-                        runner.Add(pullAct, mode);
+                        runner.Add(pullActAndId.id, pullActAndId.pullAct, mode);
                         break;
                 }
             }
@@ -67,13 +96,15 @@ namespace ChanquoCore
             {
                 // recever is not waiting on UnityThread.
                 chan.AddNonUnityThreadSelectAct(chanquoAct);
-            }
 
-            // if current chan has some data, fire receiver action.
-            T s;
-            while ((s = chan.Dequeue<T>()) != null)
-            {
-                chanquoAct.act?.Invoke(s);
+                Task.Delay(TimeSpan.FromTicks(1)).ContinueWith(o =>
+                {
+                    T s;
+                    while ((s = chan.Dequeue<T>()) != null)
+                    {
+                        chanquoAct.act?.Invoke(s);
+                    }
+                });
             }
 
             return chanquoAct;
@@ -84,22 +115,22 @@ namespace ChanquoCore
         {
             _chanq = new Chanquo();
             _chanq.runner = _chanq.go.AddComponent<ChanquoThreadRunner>();
+            GameObject.DontDestroyOnLoad(_chanq.go);
             _chanq.unityThread = Thread.CurrentThread;
         }
 
 
-        public static ChanquoChannel New<T>() where T : class, IChanquoBase, new()
+        public static ChanquoChannel MakeChannel<T>() where T : ChanquoBase, new()
         {
             return _chanq.AddChannel<T>();
         }
 
 
-        public static T Receive<T>() where T : class, IChanquoBase, new()
+        public static T Receive<T>() where T : ChanquoBase, new()
         {
-            if (_chanq.channelDict.ContainsKey(typeof(T)))
+            if (_chanq.channelTable.ContainsKey(typeof(T)))
             {
-                ChanquoChannel chan;
-                _chanq.channelDict.TryGetValue(typeof(T), out chan);
+                var chan = (ChanquoChannel)_chanq.channelTable[typeof(T)];
                 return chan?.Dequeue<T>();
             }
 
@@ -107,7 +138,7 @@ namespace ChanquoCore
             return newChan.Dequeue<T>();// return null val.
         }
 
-        public static ChanquoAction<T> Select<T>(Action<T> act, ThreadMode mode = ThreadMode.Default) where T : class, IChanquoBase, new()
+        public static ChanquoAction<T> Select<T>(Action<T> act, ThreadMode mode = ThreadMode.Default) where T : ChanquoBase, new()
         {
             return _chanq.AddReceiver(act, mode);
         }

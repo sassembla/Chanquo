@@ -2,14 +2,20 @@ using System;
 
 namespace ChanquoCore
 {
-    public class ChanquoAction<T> : IDisposable where T : IChanquoBase, new()
+    public class ChanquoAction<T> : IDisposable where T : ChanquoBase, new()
     {
         // このインスタンスのactは、存在し続けるだけでChanquo本体から実行される。
         // disposeすると受け取る権利を失う。
-        public Action<T> act;
+        public readonly Action<T> act;
+        private Action onDispose;
         public ChanquoAction(Action<T> act)
         {
             this.act = act;
+        }
+
+        public void SetOnDispose(Action onDispose)
+        {
+            this.onDispose = onDispose;
         }
 
         #region IDisposable Support
@@ -21,7 +27,7 @@ namespace ChanquoCore
             {
                 if (disposing)
                 {
-                    // TODO: dispose managed state (managed objects).
+                    onDispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
