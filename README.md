@@ -7,6 +7,8 @@ Chanquo is in very early stage of it's impememtation. not perfer to use in actua
 
 ## usage
 
+### create channel then send data to channel
+
 assume that the type like below is exists, 
 ```csharp
 public class T : IChanquoBase
@@ -30,6 +32,7 @@ c.Send(
 );//c <- data;// 送信
 ```
 
+### receive data from channel
 
 Receive<T> receives inputted T. "receive" receives only one data from channel.
 ```csharp
@@ -37,6 +40,8 @@ var r = Chanquo.Receive<T>();// 受信 r <- c(呼んだタイミングで溜ま�
 Assert.True(r.message == "message!");
 ```
 
+
+### select
 
 the Select<T> sets handler for receiving T data. this method can set "when to receive" for the data.
 ```csharp
