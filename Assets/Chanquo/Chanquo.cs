@@ -94,7 +94,7 @@ namespace ChanquoCore
             }
             else
             {
-                // recever is not waiting on UnityThread.
+                // receiver is not running on the UnityThread.
                 chan.AddNonUnityThreadSelectAct(chanquoAct);
 
                 Task.Delay(TimeSpan.FromTicks(1)).ContinueWith(o =>
