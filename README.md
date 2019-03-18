@@ -1,9 +1,6 @@
 # Chanquo
 Chanquo(pronounce chanko) is the partial implementation of Golang-channel for Unity.
 
-## status
-Chanquo is in very early stage of it's impememtation. not perfer to use in actual product.
-
 
 ## usage
 
@@ -11,7 +8,7 @@ Chanquo is in very early stage of it's impememtation. not perfer to use in actua
 
 assume that the type like below is exists, 
 ```csharp
-public class T : IChanquoBase
+public class T : ChanquoBase
 {
     public string message;
     public void Something()
@@ -51,38 +48,41 @@ var s = Chanquo.Select<T>(
         Assert.True(t.message == "selected!");
     },
     ThreadMode.OnUpdate
-);// 受信 sはレシーバ。あるだけ読み出されるwhile文みたいなもの。OnUpdateで着火されるハンドラとして動く。
-```
-
-## future implementation
-
-### select more types.
-```csharp
-var s = Chanquo.Select<T,U>(
-    t =>
-    {
-        Assert.True(t.message == "selected!");
-    },
-    u => {
-		// receive u.
-    },
-    ThreadMode.OnUpdate
 );
 ```
 
 ### react with channel-death
+
+
 ```csharp
 s = Chanquo.Select<T,U>(
     t =>
     {
-    	if (!t.ok) {
-    		s.Dispose();
-	        return;
-	    }
+        if (!t.Ok) {
+            s.Dispose();
+            return;
+        }
 
-	    Assert.True(t.message == "selected!");
+        Assert.True(t.message == "selected!");
     },
     ThreadMode.OnUpdate
 );
 ```
 
+### select multiple data.
+```csharp
+var s = Chanquo.Select<T,U>(
+    t =>
+    {
+        // receive t.
+    },
+    u => {
+        // receive u.
+    },
+    ThreadMode.OnUpdate
+);
+```
+
+
+## license
+[license](https://github.com/sassembla/Chanquo/blob/master/LICENSE)

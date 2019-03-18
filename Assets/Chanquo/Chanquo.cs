@@ -142,5 +142,38 @@ namespace ChanquoCore
         {
             return _chanq.AddReceiver(act, mode);
         }
+
+        public static ChanquoAction<T, U> Select<T, U>(Action<T> act1, Action<U> act2, ThreadMode mode = ThreadMode.Default)
+        where T : ChanquoBase, new()
+        where U : ChanquoBase, new()
+        {
+            var cAct1 = _chanq.AddReceiver(act1, mode);
+            var cAct2 = _chanq.AddReceiver(act2, mode);
+            return new ChanquoAction<T, U>(cAct1, cAct2);
+        }
+
+        public static ChanquoAction<T, U, V> Select<T, U, V>(Action<T> act1, Action<U> act2, Action<V> act3, ThreadMode mode = ThreadMode.Default)
+        where T : ChanquoBase, new()
+        where U : ChanquoBase, new()
+        where V : ChanquoBase, new()
+        {
+            var cAct1 = _chanq.AddReceiver(act1, mode);
+            var cAct2 = _chanq.AddReceiver(act2, mode);
+            var cAct3 = _chanq.AddReceiver(act3, mode);
+            return new ChanquoAction<T, U, V>(cAct1, cAct2, cAct3);
+        }
+
+        public static ChanquoAction<T, U, V, W> Select<T, U, V, W>(Action<T> act1, Action<U> act2, Action<V> act3, Action<W> act4, ThreadMode mode = ThreadMode.Default)
+        where T : ChanquoBase, new()
+        where U : ChanquoBase, new()
+        where V : ChanquoBase, new()
+        where W : ChanquoBase, new()
+        {
+            var cAct1 = _chanq.AddReceiver(act1, mode);
+            var cAct2 = _chanq.AddReceiver(act2, mode);
+            var cAct3 = _chanq.AddReceiver(act3, mode);
+            var cAct4 = _chanq.AddReceiver(act4, mode);
+            return new ChanquoAction<T, U, V, W>(cAct1, cAct2, cAct3, cAct4);
+        }
     }
 }
