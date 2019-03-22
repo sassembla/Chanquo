@@ -24,7 +24,7 @@ namespace Tests
             Assert.True(s2.update.Count == 0);
         }
 
-        public class T : ChanquoBase
+        public class T : IChanquoBase
         {
             public string message;
             public void Something()
@@ -63,9 +63,9 @@ namespace Tests
             );//c <- data;// 送信
 
             s = Chanquo.Select<T>(
-                t =>
+                (t, ok) =>
                 {
-                    if (!t.Ok)
+                    if (!ok)
                     {
                         return;
                     }
@@ -96,9 +96,9 @@ namespace Tests
                 () =>
                 {
                     s = Chanquo.Select<T>(
-                        t =>
+                        (t, ok) =>
                         {
-                            if (!t.Ok)
+                            if (!ok)
                             {
                                 return;
                             }
@@ -147,9 +147,9 @@ namespace Tests
                 () =>
                 {
                     s = Chanquo.Select<T>(
-                        t =>
+                        (t, ok) =>
                         {
-                            if (!t.Ok)
+                            if (!ok)
                             {
                                 return;
                             }
@@ -200,9 +200,9 @@ namespace Tests
             );
 
             s = Chanquo.Select<T>(
-                t =>
+                (t, ok) =>
                 {
-                    if (!t.Ok)
+                    if (!ok)
                     {
                         return;
                     }
@@ -262,7 +262,7 @@ namespace Tests
             var done = false;
 
             s = Chanquo.Select<T>(
-                t =>
+                (t, ok) =>
                 {
                     Assert.True(true, "should never come here.");
                 },
@@ -297,9 +297,9 @@ namespace Tests
 
 
             s = Chanquo.Select<T>(
-                t =>
+                (t, ok) =>
                 {
-                    if (!t.Ok)
+                    if (!ok)
                     {
                         return;
                     }
@@ -331,9 +331,9 @@ namespace Tests
 
 
             s = Chanquo.Select<T>(
-                t =>
+                (t, ok) =>
                 {
-                    if (!t.Ok)
+                    if (!ok)
                     {
                         done = true;
                         s.Dispose();
@@ -358,6 +358,7 @@ namespace Tests
                 yield return null;
             }
         }
+
 
         // sは独自のタイミングで呼び出される。が、on threadな仕掛けが欲しい。thread Aで呼ばれたい、みたいな。
         // とかやっておくと、データが流れる仕掛けが欲しい。インターバル指定、Last指定ができれば嬉しい        

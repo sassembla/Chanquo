@@ -6,9 +6,9 @@ public class Receiver : MonoBehaviour
     void Start()
     {
         var s = Chanquo.Select<Sender.Something>(
-            something =>
+            (something, ok) =>
             {
-                if (!something.Ok)
+                if (!ok)
                 {
                     return;
                 }

@@ -20,7 +20,7 @@ namespace ChanquoCore
 
     public class ChanquoChannel : IDisposable
     {
-        private ConcurrentQueue<ChanquoBase> queue = new ConcurrentQueue<ChanquoBase>();
+        private ConcurrentQueue<IChanquoBase> queue = new ConcurrentQueue<IChanquoBase>();
         private Hashtable selectActTable = new Hashtable();
         private Hashtable nonUnityThreadSelectActTable = new Hashtable();
         private Hashtable lastActTable = new Hashtable();
@@ -31,7 +31,7 @@ namespace ChanquoCore
         {
             this.leftFromChanquo = leftFromChanquo;
         }
-        public void Send<T>(T data) where T : ChanquoBase, new()
+        public void Send<T>(T data) where T : IChanquoBase, new()
         {
             queue.Enqueue(data);
             foreach (var id in nonUnityThreadSelectActTable)
@@ -40,19 +40,19 @@ namespace ChanquoCore
             }
         }
 
-        public T Dequeue<T>() where T : ChanquoBase, new()
+        public T Dequeue<T>() where T : IChanquoBase, new()
         {
             if (queue.Count == 0)
             {
-                return null;
+                return default(T);
             }
 
             if (disposedValue)
             {
-                return new T() { Ok = false };
+                return default(T);
             }
 
-            ChanquoBase result;
+            IChanquoBase result;
             queue.TryDequeue(out result);
             return (T)result;
         }
@@ -78,7 +78,7 @@ namespace ChanquoCore
             }
         }
 
-        public PullActAndId AddSelectAction<T>(ChanquoAction<T> selectAct) where T : ChanquoBase, new()
+        public PullActAndId AddSelectAction<T>(ChanquoAction<T> selectAct) where T : IChanquoBase, new()
         {
             if (disposedValue)
             {
@@ -91,13 +91,13 @@ namespace ChanquoCore
                 var count = queue.Count;
                 for (var i = 0; i < count; i++)
                 {
-                    selectAct.act(Dequeue<T>());
+                    selectAct.act(Dequeue<T>(), true);
                 }
             };
 
             Action lastAct = () =>
             {
-                selectAct.act(new T() { Ok = false });
+                selectAct.act(new T(), false);
             };
 
             lock (actTableLock)
@@ -109,7 +109,7 @@ namespace ChanquoCore
             return new PullActAndId(pullAct, id);
         }
 
-        public void AddNonUnityThreadSelectAct<T>(ChanquoAction<T> selectAct) where T : ChanquoBase, new()
+        public void AddNonUnityThreadSelectAct<T>(ChanquoAction<T> selectAct) where T : IChanquoBase, new()
         {
             var id = Guid.NewGuid().ToString();
             Action pullAct = () =>
@@ -117,13 +117,13 @@ namespace ChanquoCore
                 var count = queue.Count;
                 for (var i = 0; i < count; i++)
                 {
-                    selectAct.act(Dequeue<T>());
+                    selectAct.act(Dequeue<T>(), true);
                 }
             };
 
             Action lastAct = () =>
             {
-                selectAct.act(new T() { Ok = false });
+                selectAct.act(new T(), false);
             };
 
             lock (actTableLock)

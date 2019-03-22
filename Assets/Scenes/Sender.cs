@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Sender : MonoBehaviour
 {
-    public class Something : ChanquoBase
+    public class Something : IChanquoBase
     {
         public string message;
     }

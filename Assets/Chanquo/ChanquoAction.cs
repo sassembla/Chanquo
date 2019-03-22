@@ -3,8 +3,8 @@ using System;
 namespace ChanquoCore
 {
     public class ChanquoAction<T, U> : IDisposable
-        where T : ChanquoBase, new()
-        where U : ChanquoBase, new()
+        where T : IChanquoBase, new()
+        where U : IChanquoBase, new()
     {
         private ChanquoAction<T> cAct1;
         private ChanquoAction<U> cAct2;
@@ -53,9 +53,9 @@ namespace ChanquoCore
     }
 
     public class ChanquoAction<T, U, V> : IDisposable
-        where T : ChanquoBase, new()
-        where U : ChanquoBase, new()
-        where V : ChanquoBase, new()
+        where T : IChanquoBase, new()
+        where U : IChanquoBase, new()
+        where V : IChanquoBase, new()
     {
         private ChanquoAction<T> cAct1;
         private ChanquoAction<U> cAct2;
@@ -107,10 +107,10 @@ namespace ChanquoCore
     }
 
     public class ChanquoAction<T, U, V, W> : IDisposable
-        where T : ChanquoBase, new()
-        where U : ChanquoBase, new()
-        where V : ChanquoBase, new()
-        where W : ChanquoBase, new()
+        where T : IChanquoBase, new()
+        where U : IChanquoBase, new()
+        where V : IChanquoBase, new()
+        where W : IChanquoBase, new()
     {
         private ChanquoAction<T> cAct1;
         private ChanquoAction<U> cAct2;
@@ -164,13 +164,13 @@ namespace ChanquoCore
         #endregion
     }
 
-    public class ChanquoAction<T> : IDisposable where T : ChanquoBase, new()
+    public class ChanquoAction<T> : IDisposable where T : IChanquoBase, new()
     {
         // このインスタンスのactは、存在し続けるだけでChanquo本体から実行される。
         // disposeすると受け取る権利を失う。
-        public readonly Action<T> act;
+        public readonly Action<T, bool> act;
         private Action onDispose;
-        public ChanquoAction(Action<T> act)
+        public ChanquoAction(Action<T, bool> act)
         {
             this.act = act;
         }

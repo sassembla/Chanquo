@@ -18,7 +18,7 @@ namespace ChanquoCore
         private Thread unityThread;
         private object channelWriteLock = new object();
 
-        private ChanquoChannel AddChannel<T>() where T : ChanquoBase, new()
+        private ChanquoChannel AddChannel<T>() where T : IChanquoBase, new()
         {
             var key = typeof(T);
             if (channelTable.ContainsKey(key))
@@ -46,7 +46,7 @@ namespace ChanquoCore
             return chan;
         }
 
-        private ChanquoAction<T> AddReceiver<T>(Action<T> act, ThreadMode mode = ThreadMode.Default) where T : ChanquoBase, new()
+        private ChanquoAction<T> AddReceiver<T>(Action<T, bool> act, ThreadMode mode = ThreadMode.Default) where T : IChanquoBase, new()
         {
             // ここで関連付けを行う。
             ChanquoChannel chan;
@@ -106,7 +106,7 @@ namespace ChanquoCore
                     T s;
                     while ((s = chan.Dequeue<T>()) != null)
                     {
-                        chanquoAct.act?.Invoke(s);
+                        chanquoAct.act?.Invoke(s, true);
                     }
                 });
             }
@@ -124,42 +124,42 @@ namespace ChanquoCore
         }
 
 
-        public static ChanquoChannel MakeChannel<T>() where T : ChanquoBase, new()
+        public static ChanquoChannel MakeChannel<T>() where T : IChanquoBase, new()
         {
             return _chanq.AddChannel<T>();
         }
 
 
-        public static T Receive<T>() where T : ChanquoBase, new()
+        public static T Receive<T>() where T : IChanquoBase, new()
         {
             if (_chanq.channelTable.ContainsKey(typeof(T)))
             {
                 var chan = (ChanquoChannel)_chanq.channelTable[typeof(T)];
-                return chan?.Dequeue<T>();
+                return chan.Dequeue<T>();
             }
 
             var newChan = _chanq.AddChannel<T>();
             return newChan.Dequeue<T>();// return null val.
         }
 
-        public static ChanquoAction<T> Select<T>(Action<T> act, ThreadMode mode = ThreadMode.Default) where T : ChanquoBase, new()
+        public static ChanquoAction<T> Select<T>(Action<T, bool> act, ThreadMode mode = ThreadMode.Default) where T : IChanquoBase, new()
         {
             return _chanq.AddReceiver(act, mode);
         }
 
-        public static ChanquoAction<T, U> Select<T, U>(Action<T> act1, Action<U> act2, ThreadMode mode = ThreadMode.Default)
-        where T : ChanquoBase, new()
-        where U : ChanquoBase, new()
+        public static ChanquoAction<T, U> Select<T, U>(Action<T, bool> act1, Action<U, bool> act2, ThreadMode mode = ThreadMode.Default)
+        where T : IChanquoBase, new()
+        where U : IChanquoBase, new()
         {
             var cAct1 = _chanq.AddReceiver(act1, mode);
             var cAct2 = _chanq.AddReceiver(act2, mode);
             return new ChanquoAction<T, U>(cAct1, cAct2);
         }
 
-        public static ChanquoAction<T, U, V> Select<T, U, V>(Action<T> act1, Action<U> act2, Action<V> act3, ThreadMode mode = ThreadMode.Default)
-        where T : ChanquoBase, new()
-        where U : ChanquoBase, new()
-        where V : ChanquoBase, new()
+        public static ChanquoAction<T, U, V> Select<T, U, V>(Action<T, bool> act1, Action<U, bool> act2, Action<V, bool> act3, ThreadMode mode = ThreadMode.Default)
+        where T : IChanquoBase, new()
+        where U : IChanquoBase, new()
+        where V : IChanquoBase, new()
         {
             var cAct1 = _chanq.AddReceiver(act1, mode);
             var cAct2 = _chanq.AddReceiver(act2, mode);
@@ -167,11 +167,11 @@ namespace ChanquoCore
             return new ChanquoAction<T, U, V>(cAct1, cAct2, cAct3);
         }
 
-        public static ChanquoAction<T, U, V, W> Select<T, U, V, W>(Action<T> act1, Action<U> act2, Action<V> act3, Action<W> act4, ThreadMode mode = ThreadMode.Default)
-        where T : ChanquoBase, new()
-        where U : ChanquoBase, new()
-        where V : ChanquoBase, new()
-        where W : ChanquoBase, new()
+        public static ChanquoAction<T, U, V, W> Select<T, U, V, W>(Action<T, bool> act1, Action<U, bool> act2, Action<V, bool> act3, Action<W, bool> act4, ThreadMode mode = ThreadMode.Default)
+        where T : IChanquoBase, new()
+        where U : IChanquoBase, new()
+        where V : IChanquoBase, new()
+        where W : IChanquoBase, new()
         {
             var cAct1 = _chanq.AddReceiver(act1, mode);
             var cAct2 = _chanq.AddReceiver(act2, mode);

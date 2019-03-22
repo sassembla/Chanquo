@@ -25,12 +25,12 @@ namespace Tests
             Assert.True(s2.update.Count == 0);
         }
 
-        public class T : ChanquoBase
+        public class T : IChanquoBase
         {
             public string message;
         }
 
-        public class U : ChanquoBase
+        public class U : IChanquoBase
         {
             public string message;
         }
@@ -61,17 +61,17 @@ namespace Tests
             var receiveT = false;
             var receiveU = false;
             s = Chanquo.Select<T, U>(
-                t =>
+                (t, ok) =>
                 {
-                    if (t.Ok)
+                    if (ok)
                     {
                         Assert.True(t.message == messageT);
                         receiveT = true;
                     }
                 },
-                u =>
+                (u, ok) =>
                 {
-                    if (u.Ok)
+                    if (ok)
                     {
                         Assert.True(u.message == messageU);
                         receiveU = true;
@@ -116,9 +116,9 @@ namespace Tests
             var receiveT = false;
             var receiveU = false;
             s = Chanquo.Select<T, U>(
-                t =>
+                (t, ok) =>
                 {
-                    if (t.Ok)
+                    if (ok)
                     {
                         Assert.True(!receiveU);
                         Assert.True(t.message == messageT);
@@ -126,9 +126,9 @@ namespace Tests
                         s.Dispose();
                     }
                 },
-                u =>
+                (u, ok) =>
                 {
-                    if (u.Ok)
+                    if (ok)
                     {
                         Assert.True(!receiveT);
                         Assert.True(u.message == messageU);
