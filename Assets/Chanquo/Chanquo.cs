@@ -142,42 +142,114 @@ namespace ChanquoCore
             return newChan.Dequeue<T>();// return null val.
         }
 
-        public static ChanquoAction<T> Select<T>(Action<T, bool> act, ThreadMode mode = ThreadMode.Default) where T : IChanquoBase, new()
+        public static ChanquoAction<T1> Select<T1>(Action<T1, bool> act, ThreadMode mode = ThreadMode.Default) where T1 : IChanquoBase, new()
         {
             return _chanq.AddReceiver(act, mode);
         }
 
-        public static ChanquoAction<T, U> Select<T, U>(Action<T, bool> act1, Action<U, bool> act2, ThreadMode mode = ThreadMode.Default)
-        where T : IChanquoBase, new()
-        where U : IChanquoBase, new()
+        public static ChanquoAction<T1, T2> Select<T1, T2>(Action<T1, bool> act1, Action<T2, bool> act2, ThreadMode mode = ThreadMode.Default)
+        where T1 : IChanquoBase, new()
+        where T2 : IChanquoBase, new()
         {
             var cAct1 = _chanq.AddReceiver(act1, mode);
             var cAct2 = _chanq.AddReceiver(act2, mode);
-            return new ChanquoAction<T, U>(cAct1, cAct2);
+            return new ChanquoAction<T1, T2>(cAct1, cAct2);
         }
 
-        public static ChanquoAction<T, U, V> Select<T, U, V>(Action<T, bool> act1, Action<U, bool> act2, Action<V, bool> act3, ThreadMode mode = ThreadMode.Default)
-        where T : IChanquoBase, new()
-        where U : IChanquoBase, new()
-        where V : IChanquoBase, new()
+        public static ChanquoAction<T1, T2, T3> Select<T1, T2, T3>(Action<T1, bool> act1, Action<T2, bool> act2, Action<T3, bool> act3, ThreadMode mode = ThreadMode.Default)
+        where T1 : IChanquoBase, new()
+        where T2 : IChanquoBase, new()
+        where T3 : IChanquoBase, new()
         {
             var cAct1 = _chanq.AddReceiver(act1, mode);
             var cAct2 = _chanq.AddReceiver(act2, mode);
             var cAct3 = _chanq.AddReceiver(act3, mode);
-            return new ChanquoAction<T, U, V>(cAct1, cAct2, cAct3);
+            return new ChanquoAction<T1, T2, T3>(cAct1, cAct2, cAct3);
         }
 
-        public static ChanquoAction<T, U, V, W> Select<T, U, V, W>(Action<T, bool> act1, Action<U, bool> act2, Action<V, bool> act3, Action<W, bool> act4, ThreadMode mode = ThreadMode.Default)
-        where T : IChanquoBase, new()
-        where U : IChanquoBase, new()
-        where V : IChanquoBase, new()
-        where W : IChanquoBase, new()
+        public static ChanquoAction<T1, T2, T3, T4> Select<T1, T2, T3, T4>(Action<T1, bool> act1, Action<T2, bool> act2, Action<T3, bool> act3, Action<T4, bool> act4, ThreadMode mode = ThreadMode.Default)
+        where T1 : IChanquoBase, new()
+        where T2 : IChanquoBase, new()
+        where T3 : IChanquoBase, new()
+        where T4 : IChanquoBase, new()
         {
             var cAct1 = _chanq.AddReceiver(act1, mode);
             var cAct2 = _chanq.AddReceiver(act2, mode);
             var cAct3 = _chanq.AddReceiver(act3, mode);
             var cAct4 = _chanq.AddReceiver(act4, mode);
-            return new ChanquoAction<T, U, V, W>(cAct1, cAct2, cAct3, cAct4);
+            return new ChanquoAction<T1, T2, T3, T4>(cAct1, cAct2, cAct3, cAct4);
+        }
+
+        public static ChanquoAction<T1, T2, T3, T4, T5> Select<T1, T2, T3, T4, T5>(Action<T1, bool> act1, Action<T2, bool> act2, Action<T3, bool> act3, Action<T4, bool> act4, Action<T5, bool> act5, ThreadMode mode = ThreadMode.Default)
+        where T1 : IChanquoBase, new()
+        where T2 : IChanquoBase, new()
+        where T3 : IChanquoBase, new()
+        where T4 : IChanquoBase, new()
+        where T5 : IChanquoBase, new()
+        {
+            var cAct1 = _chanq.AddReceiver(act1, mode);
+            var cAct2 = _chanq.AddReceiver(act2, mode);
+            var cAct3 = _chanq.AddReceiver(act3, mode);
+            var cAct4 = _chanq.AddReceiver(act4, mode);
+            var cAct5 = _chanq.AddReceiver(act5, mode);
+            return new ChanquoAction<T1, T2, T3, T4, T5>(cAct1, cAct2, cAct3, cAct4, cAct5);
+        }
+
+        public static ChanquoAction<T1, T2, T3, T4, T5, T6> Select<T1, T2, T3, T4, T5, T6>(Action<T1, bool> act1, Action<T2, bool> act2, Action<T3, bool> act3, Action<T4, bool> act4, Action<T5, bool> act5, Action<T6, bool> act6, ThreadMode mode = ThreadMode.Default)
+        where T1 : IChanquoBase, new()
+        where T2 : IChanquoBase, new()
+        where T3 : IChanquoBase, new()
+        where T4 : IChanquoBase, new()
+        where T5 : IChanquoBase, new()
+        where T6 : IChanquoBase, new()
+        {
+            var cAct1 = _chanq.AddReceiver(act1, mode);
+            var cAct2 = _chanq.AddReceiver(act2, mode);
+            var cAct3 = _chanq.AddReceiver(act3, mode);
+            var cAct4 = _chanq.AddReceiver(act4, mode);
+            var cAct5 = _chanq.AddReceiver(act5, mode);
+            var cAct6 = _chanq.AddReceiver(act6, mode);
+            return new ChanquoAction<T1, T2, T3, T4, T5, T6>(cAct1, cAct2, cAct3, cAct4, cAct5, cAct6);
+        }
+
+        public static ChanquoAction<T1, T2, T3, T4, T5, T6, T7> Select<T1, T2, T3, T4, T5, T6, T7>(Action<T1, bool> act1, Action<T2, bool> act2, Action<T3, bool> act3, Action<T4, bool> act4, Action<T5, bool> act5, Action<T6, bool> act6, Action<T7, bool> act7, ThreadMode mode = ThreadMode.Default)
+        where T1 : IChanquoBase, new()
+        where T2 : IChanquoBase, new()
+        where T3 : IChanquoBase, new()
+        where T4 : IChanquoBase, new()
+        where T5 : IChanquoBase, new()
+        where T6 : IChanquoBase, new()
+        where T7 : IChanquoBase, new()
+        {
+            var cAct1 = _chanq.AddReceiver(act1, mode);
+            var cAct2 = _chanq.AddReceiver(act2, mode);
+            var cAct3 = _chanq.AddReceiver(act3, mode);
+            var cAct4 = _chanq.AddReceiver(act4, mode);
+            var cAct5 = _chanq.AddReceiver(act5, mode);
+            var cAct6 = _chanq.AddReceiver(act6, mode);
+            var cAct7 = _chanq.AddReceiver(act7, mode);
+            return new ChanquoAction<T1, T2, T3, T4, T5, T6, T7>(cAct1, cAct2, cAct3, cAct4, cAct5, cAct6, cAct7);
+        }
+
+        public static ChanquoAction<T1, T2, T3, T4, T5, T6, T7, T8> Select<T1, T2, T3, T4, T5, T6, T7, T8>(Action<T1, bool> act1, Action<T2, bool> act2, Action<T3, bool> act3, Action<T4, bool> act4, Action<T5, bool> act5, Action<T6, bool> act6, Action<T7, bool> act7, Action<T8, bool> act8, ThreadMode mode = ThreadMode.Default)
+        where T1 : IChanquoBase, new()
+        where T2 : IChanquoBase, new()
+        where T3 : IChanquoBase, new()
+        where T4 : IChanquoBase, new()
+        where T5 : IChanquoBase, new()
+        where T6 : IChanquoBase, new()
+        where T7 : IChanquoBase, new()
+        where T8 : IChanquoBase, new()
+        {
+            var cAct1 = _chanq.AddReceiver(act1, mode);
+            var cAct2 = _chanq.AddReceiver(act2, mode);
+            var cAct3 = _chanq.AddReceiver(act3, mode);
+            var cAct4 = _chanq.AddReceiver(act4, mode);
+            var cAct5 = _chanq.AddReceiver(act5, mode);
+            var cAct6 = _chanq.AddReceiver(act6, mode);
+            var cAct7 = _chanq.AddReceiver(act7, mode);
+            var cAct8 = _chanq.AddReceiver(act8, mode);
+            return new ChanquoAction<T1, T2, T3, T4, T5, T6, T7, T8>(cAct1, cAct2, cAct3, cAct4, cAct5, cAct6, cAct7, cAct8);
         }
     }
 }
