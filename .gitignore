@@ -9,3 +9,4 @@ obj/*
 Tests.csproj
 Packages/manifest.json
 .vscode/launch.json
+Assembly-CSharp-Editor.csproj
