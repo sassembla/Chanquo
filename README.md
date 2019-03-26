@@ -8,7 +8,7 @@ Chanquo(pronounce chanko) is the partial implementation of Golang-channel for Un
 
 assume that the type like below is exists, 
 ```csharp
-public class T : ChanquoBase
+public class T : IChanquoBase
 {
     public string message;
     public void Something()
@@ -43,7 +43,7 @@ Assert.True(r.message == "message!");
 the Select<T> sets handler for receiving T data. this method can set "when to receive" for the data.
 ```csharp
 var s = Chanquo.Select<T>(
-    t =>
+    (t, ok) =>
     {
         Assert.True(t.message == "selected!");
     },
@@ -56,7 +56,7 @@ var s = Chanquo.Select<T>(
 
 ```csharp
 s = Chanquo.Select<T,U>(
-    t =>
+    (t, ok) =>
     {
         if (!t.Ok) {
             s.Dispose();
@@ -72,11 +72,11 @@ s = Chanquo.Select<T,U>(
 ### select multiple data.
 ```csharp
 var s = Chanquo.Select<T,U>(
-    t =>
+    (t, ok) =>
     {
         // receive t.
     },
-    u => {
+    (u, ok) => {
         // receive u.
     },
     ThreadMode.OnUpdate
