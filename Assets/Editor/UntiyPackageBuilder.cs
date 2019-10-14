@@ -7,7 +7,7 @@ using System.IO;
 [InitializeOnLoad]
 public class UnityPackageGenerator
 {
-    [MenuItem("Window/Autoya/Update UnityPackage")]
+    [MenuItem("Window/Chanquo/Update UnityPackage")]
     public static void UnityPackage()
     {
         var assetPaths = new List<string>();
