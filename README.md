@@ -65,7 +65,8 @@ or
 Channels.Close<T>();
 ```
 
-when channel is closed, WaitFirst<T>(), WaitFirstResult<T>() and 
+when the Chan<T> is closed, WaitFirst<T>(), WaitFirstResult<T>() and For<T>'s blocking will end.  
+
 
 
 ## license
