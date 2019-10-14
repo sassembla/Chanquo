@@ -536,7 +536,7 @@ namespace Tests
             var cor = Channels.WaitFirstResult<T>();
             var go = new GameObject("test").AddComponent<TestMB>();
             go.StartCoroutine(cor);
-            while (cor.IsDone)
+            while (!cor.IsDone)
             {
                 yield return null;
             }

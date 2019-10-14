@@ -281,7 +281,7 @@ namespace Chanquo.v2
         private bool _keepWaiting = true;
         public override bool keepWaiting => _keepWaiting;
 
-        public bool IsDone => _keepWaiting;
+        public bool IsDone => !_keepWaiting;
 
         public T Result => _result;
 
