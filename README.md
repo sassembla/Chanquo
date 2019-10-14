@@ -11,7 +11,7 @@ assume that the type like below is exists,
 public struct T {}
 ```
 
-create channel and send to the typed channel.
+create typed channel and send T data to the channel.
 ```csharp
 var ch = Chan<T>.Make();
 ch.Send(new T(){});
