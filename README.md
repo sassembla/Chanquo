@@ -8,80 +8,64 @@ Chanquo(pronounce chanko) is the partial implementation of Golang-channel for Un
 
 assume that the type like below is exists, 
 ```csharp
-public class T : IChanquoBase
-{
-    public string message;
-    public void Something()
-    {
-        Debug.Log("呼ばれてる");
-    }
-}
+public struct T {}
 ```
 
-create channel via MakeChannel<T>(), then send new T instance to the channel.
+create channel and send to the typed channel.
 ```csharp
-var c = Chanquo.MakeChannel<T>();
-c.Send(
-    new T()
-    {
-        message = "selected!"
-    }
-);//c <- data;// 送信
+var ch = Chan<T>.Make();
+ch.Send(new T(){});
 ```
 
 ### receive data from channel
 
-Receive<T> receives inputted T. "receive" receives only one data from channel.
 ```csharp
-var r = Chanquo.Receive<T>();// 受信 r <- c(呼んだタイミングで溜まっているものを先頭だけpull)
-Assert.True(r.message == "message!");
-```
-
-
-### select
-
-the Select<T> sets handler for receiving T data. this method can set "when to receive" for the data.
-```csharp
-var s = Chanquo.Select<T>(
-    (t, ok) =>
-    {
-        Assert.True(t.message == "selected!");
-    },
-    ThreadMode.OnUpdate
+// start receiving data asynchronously.
+ch.Receive<T>(
+    (T data, bool ok) => {
+        // ok will become false when the channel is closed somewhere.
+        // when ok is false, data is empty.
+    }
 );
+
+or 
+
+// receive data until Chan<T> is closed.
+yield return Channels.For<T>(
+    t =>
+    {
+        done = true;
+    }
+);
+
+or 
+
+// wait first data then go through.
+yield return Channels.WaitFirst<T>();
+
+or 
+
+// wait first data then go through and get received data.
+var cor = Channels.WaitFirstResult<T>();
+yield return cor;
+var result = cor.Result;
 ```
 
-### react with channel-death
 
+
+### close channel
+
+Close() closes channel. or you can close channel by specify type.
 
 ```csharp
-s = Chanquo.Select<T,U>(
-    (t, ok) =>
-    {
-        if (!t.Ok) {
-            s.Dispose();
-            return;
-        }
+ch.Close();
 
-        Assert.True(t.message == "selected!");
-    },
-    ThreadMode.OnUpdate
-);
+or
+
+Channels.Close<T>();
 ```
 
-### select multiple data.
-```csharp
-var s = Chanquo.Select<T,U>(
-    (t, ok) =>
-    {
-        // receive t.
-    },
-    (u, ok) => {
-        // receive u.
-    },
-    ThreadMode.OnUpdate
-);
-```
+when channel is closed, WaitFirst<T>(), WaitFirstResult<T>() and 
 
 
 ## license
