@@ -32,9 +32,9 @@ or
 
 // receive data until Chan<T> is closed.
 yield return Channels.For<T>(
-    t =>
+    T t =>
     {
-        done = true;
+        
     }
 );
 
