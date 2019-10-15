@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
 using System.Threading;
+using System.Threading.Tasks;
 using Chanquo.v2;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace Tests
 {
@@ -12,6 +14,15 @@ namespace Tests
     {
         public string id;
         public T(bool a)
+        {
+            id = Guid.NewGuid().ToString();
+        }
+    }
+
+    public struct U
+    {
+        public string id;
+        public U(bool a)
         {
             id = Guid.NewGuid().ToString();
         }
@@ -44,6 +55,57 @@ namespace Tests
             }
 
             ch.Close();
+        }
+
+        [UnityTest]
+        public IEnumerator SendMultipleTypeThenReceive()
+        {
+            var done0 = false;
+            var done1 = false;
+
+            var ch0 = Chan<T>.Make();
+            ch0.Send(new T(true));
+
+
+            var ch1 = Chan<U>.Make();
+            ch1.Send(new U(true));
+
+
+            var ch0r = Chan<T>.Make();
+            ch0r.Receive(
+                (a, ok) =>
+                {
+                    if (!ok)
+                    {
+                        return;
+                    }
+                    Assert.NotNull(a.id);
+                    done0 = true;
+                }
+            );
+
+            var ch1r = Chan<U>.Make();
+            ch1r.Receive(
+                (a, ok) =>
+                {
+                    if (!ok)
+                    {
+                        return;
+                    }
+                    Assert.NotNull(a.id);
+                    done1 = true;
+                }
+            );
+
+            while (!(done0 && done1))
+            {
+                yield return null;
+            }
+
+            ch0.Close();
+            ch1.Close();
+            Assert.True(!Channels.IsExists<T>());
+            Assert.True(!Channels.IsExists<U>());
         }
 
         [UnityTest]
@@ -518,7 +580,7 @@ namespace Tests
 
             var cor = Channels.WaitFirstResult<T>();
             yield return cor;
-            var result = cor.Result;
+            var result = cor.FirstResult;
             Assert.True(result.id == data.id);
 
             Channels.Close<T>();
@@ -541,7 +603,7 @@ namespace Tests
                 yield return null;
             }
 
-            var result = cor.Result;
+            var result = cor.FirstResult;
             Assert.True(result.id == data.id);
 
             Channels.Close<T>();

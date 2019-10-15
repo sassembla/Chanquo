@@ -7,6 +7,7 @@ public struct Data { }
 public class Sample : MonoBehaviour
 {
     private Chan<Data> ch = Chan<Data>.Make();
+
     // Start is called before the first frame update
     void Start()
     {
@@ -15,9 +16,10 @@ public class Sample : MonoBehaviour
             {
                 if (!ok)
                 {
+                    Debug.Log("close!");
                     return;
                 }
-                // Debug.Log("data");
+                Debug.Log("data:" + data);
             }
         );
     }
@@ -26,5 +28,11 @@ public class Sample : MonoBehaviour
     void Update()
     {
         ch.Send(new Data());
+    }
+
+    void OnApplicationQuit()
+    {
+        Debug.Log("quit!");
+        Channels.Close<Data>();
     }
 }

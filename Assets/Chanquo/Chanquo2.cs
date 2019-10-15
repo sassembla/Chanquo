@@ -1,8 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+#if UNITY_2017
+// LowLevelが使えないのでusingから除外する。
+#else
+using UnityEngine.Experimental.LowLevel;
+#endif
 
 namespace Chanquo.v2
 {
@@ -20,7 +26,7 @@ namespace Chanquo.v2
         {
             if (!chs.IsMainThread())
             {
-                // メインスレッドではないスレッドからの送信は、受信側がどんなスレッドで受け取りたいかを加味してセットを行う。
+                // メインスレッドではないスレッドからの送信は、受信側がどんなスレッドで受け取りたいかを加味してキューイングを行う。
                 q.Enqueue(data);
                 return;
             }
@@ -33,7 +39,7 @@ namespace Chanquo.v2
 
             if (isOpen)
             {
-                // 受信側が存在しない場合、データを詰める。
+                // chが存在していながら受信側が存在しない場合、データをキューイングする。
                 q.Enqueue(data);
             }
         }
@@ -47,6 +53,7 @@ namespace Chanquo.v2
                 act(data, true);
             }
 
+            // 受信用のアクションをセットする。
             receiveAct = act;
 
             // メインスレッド外からの送信に対して、定期的な受信をセットする。
@@ -176,17 +183,58 @@ namespace Chanquo.v2
         private static ChRunner runner;
         private readonly Hashtable chs = new Hashtable();
 
-        [RuntimeInitializeOnLoadMethod]
+        public struct ChanquoUpdate { }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialize()
         {
             // mainThreadを補足する。
             thread = Thread.CurrentThread;
 
+#if UNITY_2017
             // pull action用のgameObjectを生成する。
             var go = new GameObject("ChanquoRunner");
             GameObject.DontDestroyOnLoad(go);
             runner = go.AddComponent<ChRunner>();
+#else
+            // 2018以降であれば、ループの書き換えを行う
+            var chUpdateSystem = new PlayerLoopSystem()
+            {
+                type = typeof(ChanquoUpdate),
+                updateDelegate = Update
+            };
+
+            var playerLoop = PlayerLoop.GetDefaultPlayerLoop();
+
+            // updateのシステムを取得する
+            var updateSystem = playerLoop.subSystemList[4];
+            var subSystem = new List<PlayerLoopSystem>(updateSystem.subSystemList);
+
+            // Chanquo用のupdateブロックを追加する
+            subSystem.Insert(0, chUpdateSystem);
+            updateSystem.subSystemList = subSystem.ToArray();
+            playerLoop.subSystemList[4] = updateSystem;
+
+            PlayerLoop.SetPlayerLoop(playerLoop);
+#endif
         }
+
+        private object delayLock = new object();
+        private static readonly Hashtable typeChanTable = new Hashtable();
+
+        private static void Update()
+        {
+            foreach (var key in typeChanTable.Keys)
+            {
+                var pull = (Action)typeChanTable[(Type)key];
+                pull?.Invoke();
+            }
+        }
+
+
+
+
+
 
         internal Chan<T> GetOrCreate<T>() where T : struct
         {
@@ -205,7 +253,15 @@ namespace Chanquo.v2
 
         internal void Add<T>(Action pullAct) where T : struct
         {
+#if UNITY_2017
             runner.Add<T>(pullAct);
+#else
+            lock (delayLock)
+            {
+                var type = typeof(T);
+                typeChanTable[type] = pullAct;
+            }
+#endif
         }
 
         internal void Remove<T>() where T : struct
@@ -216,8 +272,14 @@ namespace Chanquo.v2
                 if (chs.ContainsKey(type))
                 {
                     chs.Remove(type);
+#if UNITY_2017
                     runner.Remove<T>();
-                    return;
+#else
+                    lock (delayLock)
+                    {
+                        typeChanTable.Remove(type);
+                    }
+#endif
                 }
             }
         }
@@ -283,7 +345,7 @@ namespace Chanquo.v2
 
         public bool IsDone => !_keepWaiting;
 
-        public T Result => _result;
+        public T FirstResult => _result;
 
         public WaitResultInstruction()
         {
