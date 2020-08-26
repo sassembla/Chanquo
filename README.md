@@ -21,7 +21,7 @@ ch.Send(new T(){});
 
 ```csharp
 // start receiving data asynchronously.
-ch.Receive<T>(
+ch.Receive(
     (T data, bool ok) => {
         // ok will become false when the channel is closed somewhere.
         // when ok is false, data is empty.
